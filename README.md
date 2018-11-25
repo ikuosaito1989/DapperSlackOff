@@ -1,5 +1,5 @@
 # DapperSlackOff
-Dapperのめんどくさいところを楽にする拡張ライブラリ
+DapperのCRUDを簡単に使える拡張ライブラリ
 
 ## Usage
 ```c#
@@ -112,4 +112,64 @@ var people = _repository.GetList<Person, string> (list, nameof(Person.Name));
 SQL
 ```sql
 Select * from Person WHERE Name IN ("saito" ,"ikeda")
+```
+
+## Update
+
+```c#
+int Update<T> (object entity);
+```
+
+#### 主キー更新
+```c#
+var updateCount = repository.Update<Person> (new { Id = 1, Name = "saito" });
+```
+SQL
+```sql
+UPDATE Person SET Name='saito' WHERE Id=1
+```
+
+## Delete
+```c#
+int Delete<T> (object entity, bool conditions = true);
+```
+#### 主キー削除
+```c#
+var deleteCount = repository.Delete<Person> (new { Id = 1 });
+```
+SQL
+```sql
+DELETE FROM Person WHERE Id=1
+```
+
+## Insert
+```c#
+int Insert<T> (object entity);
+```
+```c#
+var insertCount = repository.Insert<Person> (new { Name = "saito", Age = 29 });
+```
+```sql
+INSERT INTO Person (Name,Age,CreateTime,UpdateTime) VALUES ('saito',29,{CurrentTime},'0000-00-00 00:00:00.000')
+```
+
+## CreateOrUpdate
+```c#
+int CreateOrUpdate<T> (T entity);
+```
+
+エンティティに主キーが存在する場合、Insert
+```c#
+var insertCount = repository.CreateOrUpdate<Person> (new Person () { Id = 1, Name = "saito", Age = 29 });
+```
+```sql
+INSERT INTO Person (Name,Age,CreateTime,UpdateTime) VALUES ('saito',29,{CurrentTime},'0000-00-00 00:00:00.000')
+```
+エンティティに主キーが存在しない場合、Update
+```c#
+var updateCount2 = repository.CreateOrUpdate<Person> (new Person () { Name = "saito", Age = 29 });
+```
+SQL
+```sql
+UPDATE Person SET Name='saito',Age=29,CreateTime='0000-00-00 00:00:00.000',UpdateTime={CurrentTime} WHERE Id=@Id
 ```

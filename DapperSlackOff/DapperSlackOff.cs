@@ -39,8 +39,9 @@ namespace Dapper {
         }
 
         public int Insert<T> (object entity) {
+            var entityModel = ConvertEntity<T> (entity);
             var values = GetInsertValues<T> (typeof (T).GetProperties ());
-            return Execute ($"INSERT INTO {typeof (T).Name} ({values.Key}) VALUES ({values.Value})", entity);
+            return Execute ($"INSERT INTO {typeof (T).Name} ({values.Key}) VALUES ({values.Value})", entityModel);
         }
 
         public int Update<T> (object entity) {
@@ -55,7 +56,7 @@ namespace Dapper {
 
         public int CreateOrUpdate<T> (T entity) {
             var keyProperty = GetKeyProperty (typeof (T).GetProperties ());
-            return IsPropertyDefaultValue (keyProperty, entity) ? Insert<T> (entity) : Update<T> (entity);
+            return IsPropertyDefaultValue (keyProperty, entity) ? Update<T> (entity) : Insert<T> (entity);
         }
 
         public IEnumerable<T> Query<T> (string sql, object param = null) {
@@ -94,6 +95,24 @@ namespace Dapper {
 
         private PropertyInfo GetKeyProperty (PropertyInfo[] properties) {
             return properties.Where (p => p.CustomAttributes.Where (c => c.AttributeType.ToString ().Contains ("KeyAttribute")).Any ()).SingleOrDefault ();
+        }
+
+        private T ConvertEntity<T> (object entity) {
+            var entityModel = Activator.CreateInstance (typeof (T));
+            entity.GetType ().GetProperties ().ToList ().ForEach (x => {
+                var value = GetValueByKeyName (entity, x.Name);
+                if (value != null) {
+                    var model = entityModel.GetType ().GetProperties ().Where (y => y.Name == x.Name).First ();
+                    model.SetValue (entityModel, value);
+                }
+            });
+            return (T) entityModel;
+        }
+
+        private object GetValueByKeyName (object entity, string name) {
+            var property = entity.GetType ().GetProperties ().Where (x => x.GetIndexParameters ().Length == 0 && x.Name.Equals (name));
+            var result = property.Any () ? property.First ().GetValue (entity) : null;
+            return result;
         }
 
         private bool IsBuiltInType (PropertyInfo property) {
