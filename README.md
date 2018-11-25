@@ -104,7 +104,7 @@ SQL
 Select * from Person WHERE Id IN (1 ,2)
 ```
 
-#### 任意のカラム検索
+#### 任意のカラム検索
 ```c#
 var names = new string[] {"saito" ,"ikeda"};
 var people = _repository.GetList<Person, string> (list, nameof(Person.Name));
@@ -120,7 +120,7 @@ Select * from Person WHERE Name IN ("saito" ,"ikeda")
 int Update<T> (object entity);
 ```
 
-#### 主キー更新
+#### 主キー更新
 ```c#
 var updateCount = repository.Update<Person> (new { Id = 1, Name = "saito" });
 ```
@@ -133,7 +133,7 @@ UPDATE Person SET Name='saito' WHERE Id=1
 ```c#
 int Delete<T> (object entity, bool conditions = true);
 ```
-#### 主キー削除
+#### 主キー削除
 ```c#
 var deleteCount = repository.Delete<Person> (new { Id = 1 });
 ```
