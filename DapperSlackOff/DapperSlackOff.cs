@@ -56,7 +56,7 @@ namespace Dapper {
 
         public int CreateOrUpdate<T> (T entity) {
             var keyProperty = GetKeyProperty (typeof (T).GetProperties ());
-            return IsPropertyDefaultValue (keyProperty, entity) ? Update<T> (entity) : Insert<T> (entity);
+            return IsPropertyDefaultValue (keyProperty, entity) ? Insert<T> (entity) : Update<T> (entity);
         }
 
         public IEnumerable<T> Query<T> (string sql, object param = null) {
@@ -130,21 +130,20 @@ namespace Dapper {
         private bool IsPropertyDefaultValue<T> (PropertyInfo property, T entity) {
             var returnType = property.GetMethod.ReturnType;
             var value = property.GetValue (entity);
-            return ((returnType == typeof (byte) && (byte) value == default (byte)) || (returnType == typeof (sbyte) && (sbyte) value == default (sbyte)) ||
+            return (returnType == typeof (byte) && (byte) value == default (byte)) || (returnType == typeof (sbyte) && (sbyte) value == default (sbyte)) ||
                 (returnType == typeof (short) && (short) value == default (short)) || (returnType == typeof (ushort) && (ushort) value == default (ushort)) ||
                 (returnType == typeof (int) && (int) value == default (int)) || (returnType == typeof (uint) && (uint) value == default (uint)) ||
                 (returnType == typeof (long) && (long) value == default (long)) || (returnType == typeof (ulong) && (ulong) value == default (ulong)) ||
                 (returnType == typeof (float) && (float) value == default (float)) || (returnType == typeof (double) && (double) value == default (double)) ||
                 (returnType == typeof (decimal) && (decimal) value == default (decimal)) || (returnType == typeof (bool) && (bool) value == default (bool)) ||
                 (returnType == typeof (string) && (string) value == default (string)) || (returnType == typeof (DateTime) && (DateTime) value == default (DateTime)) ||
-                (returnType == typeof (byte[]) && (byte[]) value == default (byte[]) ||
-                    (returnType == typeof (Nullable<byte>) && (Nullable<byte>) value == default (Nullable<byte>)) ||
-                    (returnType == typeof (Nullable<sbyte>) && (Nullable<sbyte>) value == default (Nullable<sbyte>)) || (returnType == typeof (Nullable<short>) && (Nullable<short>) value == default (Nullable<short>)) ||
-                    (returnType == typeof (Nullable<ushort>) && (Nullable<ushort>) value == default (Nullable<ushort>)) || (returnType == typeof (Nullable<int>) && (Nullable<int>) value == default (Nullable<int>)) ||
-                    (returnType == typeof (Nullable<uint>) && (Nullable<uint>) value == default (Nullable<uint>)) || (returnType == typeof (Nullable<long>) && (Nullable<long>) value == default (Nullable<long>)) ||
-                    (returnType == typeof (Nullable<ulong>) && (Nullable<ulong>) value == default (Nullable<ulong>)) || (returnType == typeof (Nullable<float>) && (Nullable<float>) value == default (Nullable<float>)) ||
-                    (returnType == typeof (Nullable<double>) && (Nullable<double>) value == default (Nullable<double>)) || (returnType == typeof (Nullable<decimal>) && (Nullable<decimal>) value == default (Nullable<decimal>)) ||
-                    (returnType == typeof (Nullable<bool>) && (Nullable<bool>) value == default (Nullable<bool>)) || (returnType == typeof (Nullable<DateTime>) && (Nullable<DateTime>) value == default (Nullable<DateTime>))));
+                (returnType == typeof (byte[]) && (byte[]) value == default (byte[])) || (returnType == typeof (Nullable<byte>) && (Nullable<byte>) value == default (Nullable<byte>)) ||
+                (returnType == typeof (Nullable<sbyte>) && (Nullable<sbyte>) value == default (Nullable<sbyte>)) || (returnType == typeof (Nullable<short>) && (Nullable<short>) value == default (Nullable<short>)) ||
+                (returnType == typeof (Nullable<ushort>) && (Nullable<ushort>) value == default (Nullable<ushort>)) || (returnType == typeof (Nullable<int>) && (Nullable<int>) value == default (Nullable<int>)) ||
+                (returnType == typeof (Nullable<uint>) && (Nullable<uint>) value == default (Nullable<uint>)) || (returnType == typeof (Nullable<long>) && (Nullable<long>) value == default (Nullable<long>)) ||
+                (returnType == typeof (Nullable<ulong>) && (Nullable<ulong>) value == default (Nullable<ulong>)) || (returnType == typeof (Nullable<float>) && (Nullable<float>) value == default (Nullable<float>)) ||
+                (returnType == typeof (Nullable<double>) && (Nullable<double>) value == default (Nullable<double>)) || (returnType == typeof (Nullable<decimal>) && (Nullable<decimal>) value == default (Nullable<decimal>)) ||
+                (returnType == typeof (Nullable<bool>) && (Nullable<bool>) value == default (Nullable<bool>)) || (returnType == typeof (Nullable<DateTime>) && (Nullable<DateTime>) value == default (Nullable<DateTime>));
         }
     }
 }
