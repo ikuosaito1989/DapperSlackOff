@@ -77,7 +77,7 @@ Select * From Person Where Id = 1 OR Age = 29
 ```c#
 public class Person
 {
-    [Key]
+    [Key]
     public int Id { get; set; }
     public string Name { get; set; }
     public int Age { get; set; }
@@ -150,7 +150,7 @@ int Insert<T> (object entity);
 var insertCount = repository.Insert<Person> (new { Name = "saito", Age = 29 });
 ```
 ```sql
-INSERT INTO Person (Name,Age,CreateTime,UpdateTime) VALUES ('saito',29,{CurrentTime},'0000-00-00 00:00:00.000')
+INSERT INTO Person (Name,Age,CreateTime,UpdateTime) VALUES ('saito',29,{CurrentTime},'0000-00-00 00:00:00.000')
 ```
 
 ## CreateOrUpdate
@@ -163,7 +163,7 @@ int CreateOrUpdate<T> (T entity);
 var insertCount = repository.CreateOrUpdate<Person> (new Person () { Id = 1, Name = "saito", Age = 29 });
 ```
 ```sql
-INSERT INTO Person (Name,Age,CreateTime,UpdateTime) VALUES ('saito',29,{CurrentTime},'0000-00-00 00:00:00.000')
+INSERT INTO Person (Name,Age,CreateTime,UpdateTime) VALUES ('saito',29,{CurrentTime},'0000-00-00 00:00:00.000')
 ```
 エンティティに主キーが存在しない場合、Update
 ```c#
