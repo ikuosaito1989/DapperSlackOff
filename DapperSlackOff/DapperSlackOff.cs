@@ -99,13 +99,13 @@ namespace Dapper {
 
         private T ConvertEntity<T> (object entity) {
             var entityModel = Activator.CreateInstance (typeof (T));
-            entity.GetType ().GetProperties ().ToList ().ForEach (x => {
-                var value = GetValueByKeyName (entity, x.Name);
+            foreach (var property in entity.GetType ().GetProperties ()) {
+                var value = GetValueByKeyName (entity, property.Name);
                 if (value != null) {
-                    var model = entityModel.GetType ().GetProperties ().Where (y => y.Name == x.Name).First ();
+                    var model = entityModel.GetType ().GetProperties ().Where (y => y.Name == property.Name).First ();
                     model.SetValue (entityModel, value);
                 }
-            });
+            }
             return (T) entityModel;
         }
 
