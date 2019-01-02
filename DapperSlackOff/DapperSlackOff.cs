@@ -101,18 +101,15 @@ namespace Dapper {
             var entityModel = Activator.CreateInstance (typeof (T));
             foreach (var property in entity.GetType ().GetProperties ()) {
                 var value = GetValueByKeyName (entity, property.Name);
-                if (value != null) {
-                    var model = entityModel.GetType ().GetProperties ().Where (y => y.Name == property.Name).First ();
-                    model.SetValue (entityModel, value);
-                }
+                var model = entityModel.GetType ().GetProperties ().Where (y => y.Name == property.Name).First ();
+                model.SetValue (entityModel, value);
             }
             return (T) entityModel;
         }
 
         private object GetValueByKeyName (object entity, string name) {
             var property = entity.GetType ().GetProperties ().Where (x => x.GetIndexParameters ().Length == 0 && x.Name.Equals (name));
-            var result = property.Any () ? property.First ().GetValue (entity) : null;
-            return result;
+            return property.Any () ? property.First ().GetValue (entity) : null;
         }
 
         private bool IsBuiltInType (PropertyInfo property) {
