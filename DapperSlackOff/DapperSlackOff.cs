@@ -57,10 +57,11 @@ namespace Dapper
             return Execute($"UPDATE {typeof(T).Name} SET {values.Key} WHERE {values.Value}", entity);
         }
 
-        public int Delete<T>(object entity, bool conditions = true)
+        public int Delete<T>(object entity = null, bool conditions = true)
         {
             var searchCriteria = GetSearchCriteria(entity, conditions);
-            return Execute($"DELETE FROM {typeof(T).Name} WHERE {searchCriteria}", entity);
+            searchCriteria = string.IsNullOrEmpty(searchCriteria) ? "" : $"WHERE {searchCriteria}";
+            return Execute($"DELETE FROM {typeof(T).Name} {searchCriteria}", entity);
         }
 
         public int CreateOrUpdate<T>(T entity)

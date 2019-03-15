@@ -12,7 +12,7 @@ namespace Dapper
         IEnumerable<T1> GetList<T1, T2>(object lists, string keyName = null);
         int Insert<T>(object entity);
         int Update<T>(object entity);
-        int Delete<T>(object entity, bool conditions = true);
+        int Delete<T>(object entity = null, bool conditions = true);
         int CreateOrUpdate<T>(T entity);
     }
 }
