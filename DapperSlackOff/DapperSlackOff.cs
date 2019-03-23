@@ -108,7 +108,7 @@ namespace Dapper
         {
             if (entity == null) return null;
             var properties = entity?.GetType().GetProperties().Where(p => IsBuiltInType(p));
-            return string.Join(conditions ? " AND " : " OR ", properties?.Select(p => $"{p.Name}=@{p.Name}"));
+            return string.Join(conditions ? " AND " : " OR ", properties?.Select(p => p.GetValue(entity) == null ? $"{p.Name} IS NULL" : $"{p.Name}=@{p.Name}"));
         }
 
         private PropertyInfo GetKeyProperty(PropertyInfo[] properties)
