@@ -5,7 +5,6 @@ using System.Data;
 using System.Data.SqlClient;
 using System.Linq;
 using System.Reflection;
-using Dapper;
 
 namespace Dapper
 {
@@ -29,11 +28,10 @@ namespace Dapper
             return connection;
         }
 
-        public IEnumerable<T> Get<T>(object entity = null, bool conditions = true)
+        public IEnumerable<T> Get<T>(object entity = null, bool logicalOperator = true)
         {
-            var searchCriteria = GetSearchCriteria(entity, conditions);
-            searchCriteria = string.IsNullOrEmpty(searchCriteria) ? "" : $"WHERE {searchCriteria}";
-            return Query<T>($"SELECT * FROM {typeof(T).Name} {searchCriteria}", entity);
+            var conditions = BuildWhere(entity, logicalOperator);
+            return Query<T>($"SELECT * FROM {typeof(T).Name} {conditions}", entity);
         }
 
         public IEnumerable<T1> GetList<T1, T2>(object lists, string keyName = null)
@@ -44,115 +42,160 @@ namespace Dapper
             return Query<T1>($"SELECT * FROM {type.Name} WHERE {keyPropertyName} IN @Lists", param);
         }
 
-        public int Insert<T>(object entity)
+        public T Insert<T>(object entity)
         {
-            var entityModel = ConvertEntity<T>(entity);
-            var values = GetInsertValues<T>(typeof(T).GetProperties());
-            return Execute($"INSERT INTO {typeof(T).Name} ({values.Key}) VALUES ({values.Value})", entityModel);
+            var type = typeof(T);
+            var model = GenerateInstance<T>(entity);
+            (string columns, string values) = BuildInsert(type.GetProperties());
+            var ids = Query<int>($@"INSERT INTO {type.Name} ({columns}) VALUES ({values});
+                                SELECT CAST(SCOPE_IDENTITY() AS INT)", model);
+            if (ids.Any())
+            {
+                var keyName = GetKeyProperty(type.GetProperties()).Name;
+                return Query<T>($"SELECT * FROM {type.Name} WHERE {keyName}={ids.First()}", entity).FirstOrDefault();
+            }
+
+            return default;
         }
 
-        public int Update<T>(object entity)
+        public T Update<T>(object entity)
         {
-            var values = GetUpdateValues<T>(entity.GetType().GetProperties());
-            return Execute($"UPDATE {typeof(T).Name} SET {values.Key} WHERE {values.Value}", entity);
+            var type = typeof(T);
+            var key = GetKeyProperty(entity.GetType().GetProperties());
+            var setStatement = BuildUpdateSet(entity.GetType().GetProperties());
+            var conditions = $"{key.Name}=@{key.Name}";
+
+            Execute($"UPDATE {type.Name} SET {setStatement} WHERE {conditions}", entity);
+            return Query<T>($"SELECT * FROM {type.Name} WHERE {conditions}", entity).FirstOrDefault();
         }
 
-        public int Delete<T>(object entity = null, bool conditions = true)
+        public int Delete<T>(object entity = null, bool logicalOperator = true)
         {
-            var searchCriteria = GetSearchCriteria(entity, conditions);
-            searchCriteria = string.IsNullOrEmpty(searchCriteria) ? "" : $"WHERE {searchCriteria}";
-            return Execute($"DELETE FROM {typeof(T).Name} {searchCriteria}", entity);
+            var conditions = BuildWhere(entity, logicalOperator);
+            return Execute($"DELETE FROM {typeof(T).Name} {conditions}", entity);
         }
 
-        public int CreateOrUpdate<T>(T entity)
+        public T CreateOrUpdate<T>(T entity)
         {
             var keyProperty = GetKeyProperty(typeof(T).GetProperties());
-            return IsPropertyDefaultValue(keyProperty, entity) ? Insert<T>(entity) : Update<T>(entity);
+            return CheckPropertyDefaultValue(keyProperty, entity) ? Insert<T>(entity) : Update<T>(entity);
         }
 
         public IEnumerable<T> Query<T>(string sql, object param = null)
         {
-            using (var connection = GetOpenConnection())
-            {
-                return connection.Query<T>(sql, param);
-            }
+            using var connection = GetOpenConnection();
+            return connection.Query<T>(sql, param);
         }
 
         public int Execute(string sql, object param)
         {
-            using (var connection = GetOpenConnection())
+            using var connection = GetOpenConnection();
+            return connection.Execute(sql, param, commandType: CommandType.Text);
+        }
+
+        private (string columns, string values) BuildInsert(IEnumerable<PropertyInfo> propertyInfo)
+        {
+            static bool predicate(CustomAttributeData c) => c.AttributeType.ToString().Contains(nameof(KeyAttribute));
+            var properties = propertyInfo.Where(p => CheckBuiltInType(p) && !p.CustomAttributes.Any(predicate));
+            var columns = properties.Select(x => $"{x.Name}");
+            var values = properties.Select(x => _creationDateColumns.Contains(x.Name) ? $"'{DateTime.Now:yyyy-MM-dd HH:mm:ss.fff}'" : $"@{x.Name}");
+            return (columns: string.Join(",", columns), values: string.Join(",", values));
+        }
+
+        private string BuildUpdateSet(IEnumerable<PropertyInfo> properties)
+        {
+            var key = GetKeyProperty(properties);
+            IEnumerable<string> setValues = new string[] { };
+
+            foreach (var property in properties)
             {
-                return connection.Execute(sql, param, commandType: CommandType.Text);
+                var value = "";
+                if (CheckBuiltInType(property) &&
+                    !property.Name.Equals(key.Name) &&
+                    !_creationDateColumns.Contains(property.Name))
+                {
+                    value = $"{property.Name}=@{property.Name}";
+                }
+                else if (_updateDateColumn.Contains(property.Name))
+                {
+                    value = $"{property.Name}='{DateTime.Now:yyyy-MM-dd HH:mm:ss.fff}'";
+                }
+                else
+                {
+                    continue;
+                }
+
+                setValues = setValues.Concat(new[] { value });
             }
+
+            return string.Join(",", setValues);
         }
 
-        private KeyValuePair<string, string> GetInsertValues<T>(IEnumerable<PropertyInfo> propertyInfo)
+        private string BuildWhere(object entity, bool logicalOperator = true)
         {
-            Func<CustomAttributeData, bool> predicate = (CustomAttributeData c) => c.AttributeType.ToString().Contains(nameof(KeyAttribute));
-            var properties = propertyInfo.Where(p => IsBuiltInType(p) && !p.CustomAttributes.Where(predicate).Any());
-            var insertColumnes = properties.Select(x => $"{x.Name}");
-            var insertValues = properties.Select(x => _creationDateColumns.Contains(x.Name) ? $"'{DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss.fff")}'" : $"@{x.Name}");
-            return new KeyValuePair<string, string>(string.Join(",", insertColumnes), string.Join(",", insertValues));
+            if (entity == null)
+                return null;
+
+            var properties = entity.GetType().GetProperties().Where(p => CheckBuiltInType(p));
+            if (!properties.Any())
+                return "";
+
+            var conditions = string.Join(logicalOperator ? " AND " : " OR ",
+                    properties?.Select(p => p.GetValue(entity) == null ? $"{p.Name} IS NULL" : $"{p.Name}=@{p.Name}"));
+            return $"WHERE {conditions}";
         }
 
-        private KeyValuePair<string, string> GetUpdateValues<T>(IEnumerable<PropertyInfo> propertyInfo)
+        private PropertyInfo GetKeyProperty(IEnumerable<PropertyInfo> properties)
         {
-            var ketProperty = GetKeyProperty(typeof(T).GetProperties());
-            var updateSentence = propertyInfo.Where(p => IsBuiltInType(p) && !p.Name.Equals(ketProperty.Name) && !_updateDateColumn.Contains(p.Name)).Select(x => $"{x.Name}=@{x.Name}");
-            var updateData = typeof(T).GetProperties().Where(x => _updateDateColumn.Contains(x.Name)).Select(x => $"{x.Name}='{DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss.fff")}'");
-            var searchCriteria = $"{ketProperty.Name}=@{ketProperty.Name}";
-            return new KeyValuePair<string, string>(string.Join(",", updateSentence.Concat(updateData)), searchCriteria);
+            return properties
+                    .Where(p => p.CustomAttributes.Any(c => c.AttributeType.ToString().Contains("KeyAttribute")))
+                    .SingleOrDefault();
         }
 
-        private string GetSearchCriteria(object entity, bool conditions = true)
+        private T GenerateInstance<T>(object entity)
         {
-            if (entity == null) return null;
-            var properties = entity?.GetType().GetProperties().Where(p => IsBuiltInType(p));
-            return string.Join(conditions ? " AND " : " OR ", properties?.Select(p => p.GetValue(entity) == null ? $"{p.Name} IS NULL" : $"{p.Name}=@{p.Name}"));
-        }
-
-        private PropertyInfo GetKeyProperty(PropertyInfo[] properties)
-        {
-            return properties.Where(p => p.CustomAttributes.Where(c => c.AttributeType.ToString().Contains("KeyAttribute")).Any()).SingleOrDefault();
-        }
-
-        private T ConvertEntity<T>(object entity)
-        {
-            var entityModel = Activator.CreateInstance(typeof(T));
+            var model = (T)Activator.CreateInstance(typeof(T));
             foreach (var property in entity.GetType().GetProperties())
             {
-                var value = GetValueByKeyName(entity, property.Name);
-                var model = entityModel.GetType().GetProperties().Where(y => y.Name == property.Name).First();
-                model.SetValue(entityModel, value);
+                var value = GetObjectValue(entity, property.Name);
+                var modelProperty = model.GetType().GetProperties().Where(y => y.Name == property.Name).First();
+                modelProperty.SetValue(model, value);
             }
-            return (T)entityModel;
+            return model;
         }
 
-        private object GetValueByKeyName(object entity, string name)
+        private object GetObjectValue(object entity, string name)
         {
             var property = entity.GetType().GetProperties().Where(x => x.GetIndexParameters().Length == 0 && x.Name.Equals(name));
             return property.Any() ? property.First().GetValue(entity) : null;
         }
 
-        private bool IsBuiltInType(PropertyInfo property)
+        private bool CheckBuiltInType(PropertyInfo property)
         {
             var returnType = property.GetMethod.ReturnType;
-            return (returnType == typeof(byte) || returnType == typeof(sbyte) || returnType == typeof(short) || returnType == typeof(ushort) ||
-                returnType == typeof(int) || returnType == typeof(uint) || returnType == typeof(long) || returnType == typeof(ulong) ||
-                returnType == typeof(float) || returnType == typeof(double) || returnType == typeof(decimal) || returnType == typeof(bool) ||
-                returnType == typeof(string) || returnType == typeof(DateTime) || returnType == typeof(byte[]) ||
-                returnType == typeof(Nullable<byte>) || returnType == typeof(Nullable<sbyte>) || returnType == typeof(Nullable<short>) || returnType == typeof(Nullable<ushort>) ||
-                returnType == typeof(Nullable<int>) || returnType == typeof(Nullable<uint>) || returnType == typeof(Nullable<long>) || returnType == typeof(Nullable<ulong>) ||
-                returnType == typeof(Nullable<float>) || returnType == typeof(Nullable<double>) || returnType == typeof(Nullable<decimal>) || returnType == typeof(Nullable<bool>) ||
-                returnType == typeof(Nullable<DateTime>));
+            return (returnType == typeof(byte) || returnType == typeof(byte?) ||
+                    returnType == typeof(sbyte) || returnType == typeof(sbyte?) ||
+                    returnType == typeof(short) || returnType == typeof(short?) ||
+                    returnType == typeof(ushort) || returnType == typeof(ushort?) ||
+                    returnType == typeof(int) || returnType == typeof(int?) ||
+                    returnType == typeof(uint) || returnType == typeof(uint?) ||
+                    returnType == typeof(long) || returnType == typeof(long?) ||
+                    returnType == typeof(ulong) || returnType == typeof(ulong?) ||
+                    returnType == typeof(float) || returnType == typeof(float?) ||
+                    returnType == typeof(double) || returnType == typeof(double?) ||
+                    returnType == typeof(decimal) || returnType == typeof(decimal?) ||
+                    returnType == typeof(bool) || returnType == typeof(bool?) ||
+                    returnType == typeof(string) ||
+                    returnType == typeof(DateTime) || returnType == typeof(DateTime?) ||
+                    returnType == typeof(byte[]));
         }
 
-        private bool IsPropertyDefaultValue<T>(PropertyInfo property, T entity)
+        private bool CheckPropertyDefaultValue<T>(PropertyInfo property, T entity)
         {
             var value = property.GetValue(entity);
-            if (value == null) return true;
             var type = value.GetType();
-            return type.IsValueType ? value.Equals(Activator.CreateInstance(type)) : false;
+
+            return value != null && type.IsValueType && value.Equals(Activator.CreateInstance(type));
         }
     }
 }
