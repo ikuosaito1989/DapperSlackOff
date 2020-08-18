@@ -61,8 +61,8 @@ namespace Dapper
         public T Update<T>(object entity)
         {
             var type = typeof(T);
-            var key = GetKeyProperty(entity.GetType().GetProperties());
-            var setStatement = BuildUpdateSet(entity.GetType().GetProperties());
+            var key = GetKeyProperty(type.GetProperties());
+            var setStatement = BuildUpdateSet<T>(entity.GetType().GetProperties());
             var conditions = $"{key.Name}=@{key.Name}";
 
             Execute($"UPDATE {type.Name} SET {setStatement} WHERE {conditions}", entity);
@@ -77,7 +77,8 @@ namespace Dapper
 
         public T CreateOrUpdate<T>(T entity)
         {
-            var keyProperty = GetKeyProperty(typeof(T).GetProperties());
+            var type = typeof(T);
+            var keyProperty = GetKeyProperty(type.GetProperties());
             return CheckPropertyDefaultValue(keyProperty, entity) ? Insert<T>(entity) : Update<T>(entity);
         }
 
@@ -102,17 +103,16 @@ namespace Dapper
             return (columns: string.Join(",", columns), values: string.Join(",", values));
         }
 
-        private string BuildUpdateSet(IEnumerable<PropertyInfo> properties)
+        private string BuildUpdateSet<T>(IEnumerable<PropertyInfo> properties)
         {
-            var key = GetKeyProperty(properties);
+            var type = typeof(T);
+            var key = GetKeyProperty(type.GetProperties());
             IEnumerable<string> setValues = new string[] { };
 
             foreach (var property in properties)
             {
                 var value = "";
-                if (CheckBuiltInType(property) &&
-                    !property.Name.Equals(key.Name) &&
-                    !_creationDateColumns.Contains(property.Name))
+                if (CheckBuiltInType(property) &&!property.Name.Equals(key.Name) &&!_creationDateColumns.Contains(property.Name))
                 {
                     value = $"{property.Name}=@{property.Name}";
                 }
