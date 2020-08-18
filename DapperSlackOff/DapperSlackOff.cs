@@ -112,7 +112,7 @@ namespace Dapper
             foreach (var property in properties)
             {
                 var value = "";
-                if (CheckBuiltInType(property) &&!property.Name.Equals(key.Name) &&!_creationDateColumns.Contains(property.Name))
+                if (CheckBuiltInType(property) && !property.Name.Equals(key.Name) && !_creationDateColumns.Contains(property.Name))
                 {
                     value = $"{property.Name}=@{property.Name}";
                 }
