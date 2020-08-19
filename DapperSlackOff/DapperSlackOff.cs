@@ -133,15 +133,15 @@ namespace Dapper
 
         private string BuildWhere(object entity, bool logicalOperator = true)
         {
-            if (entity == null)
+            if (entity is null)
                 return null;
 
             var properties = entity.GetType().GetProperties().Where(p => CheckBuiltInType(p));
             if (!properties.Any())
-                return "";
+                return null;
 
             var conditions = string.Join(logicalOperator ? " AND " : " OR ",
-                    properties?.Select(p => p.GetValue(entity) == null ? $"{p.Name} IS NULL" : $"{p.Name}=@{p.Name}"));
+                    properties?.Select(p => p.GetValue(entity) is null ? $"{p.Name} IS NULL" : $"{p.Name}=@{p.Name}"));
             return $"WHERE {conditions}";
         }
 
@@ -172,22 +172,22 @@ namespace Dapper
 
         private bool CheckBuiltInType(PropertyInfo property)
         {
-            var returnType = property.GetMethod.ReturnType;
-            return (returnType == typeof(byte) || returnType == typeof(byte?) ||
-                    returnType == typeof(sbyte) || returnType == typeof(sbyte?) ||
-                    returnType == typeof(short) || returnType == typeof(short?) ||
-                    returnType == typeof(ushort) || returnType == typeof(ushort?) ||
-                    returnType == typeof(int) || returnType == typeof(int?) ||
-                    returnType == typeof(uint) || returnType == typeof(uint?) ||
-                    returnType == typeof(long) || returnType == typeof(long?) ||
-                    returnType == typeof(ulong) || returnType == typeof(ulong?) ||
-                    returnType == typeof(float) || returnType == typeof(float?) ||
-                    returnType == typeof(double) || returnType == typeof(double?) ||
-                    returnType == typeof(decimal) || returnType == typeof(decimal?) ||
-                    returnType == typeof(bool) || returnType == typeof(bool?) ||
-                    returnType == typeof(string) ||
-                    returnType == typeof(DateTime) || returnType == typeof(DateTime?) ||
-                    returnType == typeof(byte[]));
+            var type = property.GetMethod.ReturnType;
+            return type == typeof(byte) || type == typeof(byte?) ||
+                    type == typeof(sbyte) || type == typeof(sbyte?) ||
+                    type == typeof(short) || type == typeof(short?) ||
+                    type == typeof(ushort) || type == typeof(ushort?) ||
+                    type == typeof(int) || type == typeof(int?) ||
+                    type == typeof(uint) || type == typeof(uint?) ||
+                    type == typeof(long) || type == typeof(long?) ||
+                    type == typeof(ulong) || type == typeof(ulong?) ||
+                    type == typeof(float) || type == typeof(float?) ||
+                    type == typeof(double) || type == typeof(double?) ||
+                    type == typeof(decimal) || type == typeof(decimal?) ||
+                    type == typeof(bool) || type == typeof(bool?) ||
+                    type == typeof(string) ||
+                    type == typeof(DateTime) || type == typeof(DateTime?) ||
+                    type == typeof(byte[]);
         }
 
         private bool CheckPropertyDefaultValue<T>(PropertyInfo property, T entity)
