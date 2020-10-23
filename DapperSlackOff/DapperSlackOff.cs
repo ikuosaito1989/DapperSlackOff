@@ -10,9 +10,9 @@ namespace Dapper
 {
     public partial class DapperSlackOff : IDapperSlackOff
     {
-        private string _connectionString { get; set; }
-        private string[] _creationDateColumns { get; set; }
-        private string[] _updateDateColumn { get; set; }
+        private readonly string _connectionString;
+        private readonly string[] _creationDateColumns;
+        private readonly string[] _updateDateColumn;
 
         public DapperSlackOff(string connectionString, string[] creationDateColumns, string[] updateDateColumn)
         {
