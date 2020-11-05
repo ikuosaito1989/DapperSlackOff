@@ -112,13 +112,13 @@ namespace Dapper
             foreach (var property in properties)
             {
                 var value = "";
-                if (CheckBuiltInType(property) && !property.Name.Equals(key.Name) && !_creationDateColumns.Contains(property.Name))
-                {
-                    value = $"{property.Name}=@{property.Name}";
-                }
-                else if (_updateDateColumn.Contains(property.Name))
+                if (_updateDateColumn.Contains(property.Name))
                 {
                     value = $"{property.Name}='{DateTime.Now:yyyy-MM-dd HH:mm:ss.fff}'";
+                }
+                else if (CheckBuiltInType(property) && !property.Name.Equals(key.Name) && !_creationDateColumns.Contains(property.Name))
+                {
+                    value = $"{property.Name}=@{property.Name}";
                 }
                 else
                 {
