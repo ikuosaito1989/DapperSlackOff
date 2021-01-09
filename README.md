@@ -5,13 +5,13 @@ DapperのCRUDを簡単に使える拡張ライブラリ
 ```c#
 using Dapper;
 services.AddSingleton<IDapperSlackOff> (_ =>
-    new DapperSlackOff (string connectionString, string[] creationDateColumns, string[] updateDateColumn));
+    new DapperSlackOff (string connectionString, string[] creatDateColumns, string[] updateDateColumn));
 ```
 - connectionString
 
 接続文字列
 
-- creationDateColumns
+- creatDateColumns
 
 自動で作成日を更新するカラム名
 
