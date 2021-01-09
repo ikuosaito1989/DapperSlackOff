@@ -32,7 +32,7 @@ public class Test {
 }
 ```
 
-## Select
+## SELECT
 
 ```c#
 IEnumerable<T> Get<T> (object entity = null, bool conditions = true);
@@ -53,7 +53,7 @@ var person = _repository.Get<Person> ();
 ```
 SQL
 ```sql
-Select * From Person
+SELECT * FROM Person
 ```
 #### 条件あり（AND）
 ```c#
@@ -61,7 +61,7 @@ var person = _repository.Get<Person> (new { Id = 1, Age = 29 });
 ```
 SQL
 ```sql
-Select * From Person Where Id = 1 AND Age = 29
+SELECT * FROM Person Where Id = 1 AND Age = 29
 ```
 
 #### 条件あり（OR）
@@ -70,10 +70,10 @@ var person = _repository.Get<Person> (new { Id = 1, Age = 29 }, false);
 ```
 SQL
 ```sql
-Select * From Person Where Id = 1 OR Age = 29
+SELECT * FROM Person Where Id = 1 OR Age = 29
 ```
 
-## Select List
+## SELECT List
 ```c#
 public class Person
 {
@@ -101,7 +101,7 @@ var people = _repository.GetList<Person, int> (list);
 ```
 SQL
 ```sql
-Select * from Person WHERE Id IN (1 ,2)
+SELECT * FROM Person WHERE Id IN (1 ,2)
 ```
 
 #### 任意のカラム検索
@@ -111,7 +111,7 @@ var people = _repository.GetList<Person, string> (list, nameof(Person.Name));
 ```
 SQL
 ```sql
-Select * from Person WHERE Name IN ("saito" ,"ikeda")
+SELECT * FROM Person WHERE Name IN ("saito" ,"ikeda")
 ```
 
 ## Update
