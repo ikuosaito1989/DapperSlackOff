@@ -148,8 +148,7 @@ namespace Dapper
         private PropertyInfo GetKeyProperty(IEnumerable<PropertyInfo> properties)
         {
             return properties
-                    .Where(p => p.CustomAttributes.Any(c => c.AttributeType.ToString().Contains("KeyAttribute")))
-                    .SingleOrDefault();
+                    .SingleOrDefault(p => p.CustomAttributes.Any(c => c.AttributeType.ToString().Contains("KeyAttribute")));
         }
 
         private T GenerateInstance<T>(object entity)
@@ -158,7 +157,7 @@ namespace Dapper
             foreach (var property in entity.GetType().GetProperties())
             {
                 var value = GetObjectValue(entity, property.Name);
-                var modelProperty = model.GetType().GetProperties().Where(y => y.Name == property.Name).First();
+                var modelProperty = model.GetType().GetProperties().First(y => y.Name == property.Name);
                 modelProperty.SetValue(model, value);
             }
             return model;
