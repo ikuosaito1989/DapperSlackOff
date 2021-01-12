@@ -10,18 +10,17 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-    - uses: actions/checkout@v2
+    - name: Setup Checkout
+      uses: actions/checkout@v2
       with:
         submodules: true
-    - name: Restore Tool
-      run: dotnet tool restore
-    - name: Check C# code format 
-      run: dotnet format --check
     - name: Setup .NET Core
       uses: actions/setup-dotnet@v1
       with:
         dotnet-version: 3.1.100
-    - name: Restore
-      run: dotnet restore
-    - name: Build
-      run: dotnet build
+    - name: .NET Core Build
+      run: ./tools/sh/dotnet_build.sh
+    - name: C# Code Analyze
+      run: ./tools/sh/analyze.sh
+    - name: C# Code Format 
+      run: dotnet format --check

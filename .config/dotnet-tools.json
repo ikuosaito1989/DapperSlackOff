@@ -1,11 +1,17 @@
 {
   "version": 1,
-  "isRoot": false,
+  "isRoot": true,
   "tools": {
     "dotnet-format": {
       "version": "4.1.131201",
       "commands": [
         "dotnet-format"
+      ]
+    },
+    "roslynator.dotnet.cli": {
+      "version": "0.1.1",
+      "commands": [
+        "roslynator"
       ]
     }
   }
