@@ -96,9 +96,9 @@ namespace Dapper
 
         private (string columns, string values) BuildInsert(IEnumerable<PropertyInfo> propertyInfo)
         {
-            static bool predicate(CustomAttributeData c) => c.AttributeType.ToString().Contains(nameof(KeyAttribute));
-            var properties = propertyInfo.Where(p => CheckBuiltInType(p) && !p.CustomAttributes.Any(predicate));
-            var columns = properties.Select(x => $"{x.Name}");
+            static bool Predicate(CustomAttributeData c) => c.AttributeType.ToString().Contains(nameof(KeyAttribute));
+            var properties = propertyInfo.Where(p => CheckBuiltInType(p) && !p.CustomAttributes.Any(Predicate));
+            var columns = properties.Select(x => GetValidColumn(x.Name));
             var values = properties.Select(x => _creationDateColumns.Contains(x.Name) ? $"'{DateTime.Now:yyyy-MM-dd HH:mm:ss.fff}'" : $"@{x.Name}");
             return (columns: string.Join(",", columns), values: string.Join(",", values));
         }
@@ -114,11 +114,11 @@ namespace Dapper
                 var value = "";
                 if (_updateDateColumn.Contains(property.Name))
                 {
-                    value = $"{property.Name}='{DateTime.Now:yyyy-MM-dd HH:mm:ss.fff}'";
+                    value = $"{GetValidColumn(property.Name)}='{DateTime.Now:yyyy-MM-dd HH:mm:ss.fff}'";
                 }
                 else if (CheckBuiltInType(property) && !property.Name.Equals(key.Name) && !_creationDateColumns.Contains(property.Name))
                 {
-                    value = $"{property.Name}=@{property.Name}";
+                    value = $"{GetValidColumn(property.Name)}=@{property.Name}";
                 }
                 else
                 {
@@ -140,9 +140,21 @@ namespace Dapper
             if (!properties.Any())
                 return null;
 
-            var conditions = string.Join(logicalOperator ? " AND " : " OR ",
-                    properties?.Select(p => p.GetValue(entity) is null ? $"{p.Name} IS NULL" : $"{p.Name}=@{p.Name}"));
+            var columns = properties.Select(p => p.GetValue(entity) is null ? $"{GetValidColumn(p.Name)} IS NULL" : $"{GetValidColumn(p.Name)}=@{p.Name}");
+            var conditions = string.Join(logicalOperator ? " AND " : " OR ", columns);
             return $"WHERE {conditions}";
+        }
+
+        private string GetValidColumn(string column)
+        {
+            switch (column.ToUpper())
+            {
+                case "KEY":
+                case "VALUE":
+                    return $"\"{column}\"";
+                default:
+                    return $"{column}";
+            }
         }
 
         private PropertyInfo GetKeyProperty(IEnumerable<PropertyInfo> properties)
