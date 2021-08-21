@@ -12,7 +12,7 @@ namespace sample
         static void Main(string[] args)
         {
             // var selectValue = _repository.Get<Person> (new { Test = "saito" });
-            var insertValue = _repository.Insert<Person> (new { Name = "saito", Age = 29 });
+            var insertValue = _repository.Insert<Person>(new { Name = "saito", Age = 29 });
             // var updateValue = _repository.Update<Person> (new Person() { Id = 3, Name = "sato", Age = 30 });
         }
     }
